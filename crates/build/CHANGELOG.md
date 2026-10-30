@@ -1,0 +1,78 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [2.5.0](https://github.com/napi-rs/napi-rs/compare/napi-build-v2.4.4...napi-build-v2.5.0) - 2026-09-22
+
+### Added
+
+- *(async-runtime)* offer the MultiThread flavor on wasm32-wasip1-threads ([#3541](https://github.com/napi-rs/napi-rs/pull/3541))
+
+## [2.4.4](https://github.com/napi-rs/napi-rs/compare/napi-build-v2.4.3...napi-build-v2.4.4) - 2026-09-20
+
+### Fixed
+
+- *(napi)* guard AsyncTask completion against env teardown ([#3536](https://github.com/napi-rs/napi-rs/pull/3536))
+
+## [2.4.3](https://github.com/napi-rs/napi-rs/compare/napi-build-v2.4.2...napi-build-v2.4.3) - 2026-09-16
+
+### Fixed
+
+- *(cli)* drain outstanding async work before disposing a WASI binding ([#3528](https://github.com/napi-rs/napi-rs/pull/3528))
+
+## [2.4.2](https://github.com/napi-rs/napi-rs/compare/napi-build-v2.4.1...napi-build-v2.4.2) - 2026-09-10
+
+### Fixed
+
+- *(cli,build)* make wasm32-wasip1-threads link with wasi-sdk 34 and Rust nightly ([#3492](https://github.com/napi-rs/napi-rs/pull/3492))
+
+## [2.4.1](https://github.com/napi-rs/napi-rs/compare/napi-build-v2.4.0...napi-build-v2.4.1) - 2026-08-10
+
+### Fixed
+
+- *(napi)* stop unloading addons with live native code, preserve non-Error rejections, and add the wasm teardown barrier ([#3423](https://github.com/napi-rs/napi-rs/pull/3423))
+
+## [2.4.0](https://github.com/napi-rs/napi-rs/compare/napi-build-v2.3.2...napi-build-v2.4.0) - 2026-07-28
+
+### Added
+
+- *(cli)* support non-threaded WASI targets ([#3353](https://github.com/napi-rs/napi-rs/pull/3353))
+
+## [2.3.2](https://github.com/napi-rs/napi-rs/compare/napi-build-v2.3.1...napi-build-v2.3.2) - 2026-05-13
+
+### Fixed
+
+- *(build)* on openbsd, work around local thread storage destructor crash after DSO unloading using '-z, nodelete' linker flag ([#3274](https://github.com/napi-rs/napi-rs/pull/3274))
+
+## [2.3.1](https://github.com/napi-rs/napi-rs/compare/napi-build-v2.3.0...napi-build-v2.3.1) - 2025-11-10
+
+### Fixed
+
+- *(build)* add back undefined symbols lookup behavior ([#3015](https://github.com/napi-rs/napi-rs/pull/3015))
+
+## [2.3.0](https://github.com/napi-rs/napi-rs/compare/napi-build-v2.2.4...napi-build-v2.3.0) - 2025-11-06
+
+### Added
+
+- *(sys)* use libloading to load napi symbols at runtime on all platform ([#2996](https://github.com/napi-rs/napi-rs/pull/2996))
+
+## [2.2.4](https://github.com/napi-rs/napi-rs/compare/napi-build-v2.2.3...napi-build-v2.2.4) - 2025-10-24
+
+### Fixed
+
+- *(build)* export `emnapi_thread_crashed` ([#2920](https://github.com/napi-rs/napi-rs/pull/2920))
+
+### Other
+
+- *(napi)* bump rust-version ([#2966](https://github.com/napi-rs/napi-rs/pull/2966))
+
+## [2.2.3](https://github.com/napi-rs/napi-rs/compare/napi-build-v2.2.2...napi-build-v2.2.3) - 2025-07-24
+
+### Other
+
+- *(cli)* setjmp link path ([#2808](https://github.com/napi-rs/napi-rs/pull/2808))

@@ -1,0 +1,85 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [3.4.1](https://github.com/napi-rs/napi-rs/compare/napi-sys-v3.4.0...napi-sys-v3.4.1) - 2026-10-21
+
+### Other
+
+- *(cli)* record the design behind the threaded WASI heap sync ([#3581](https://github.com/napi-rs/napi-rs/pull/3581))
+
+## [3.4.0](https://github.com/napi-rs/napi-rs/compare/napi-sys-v3.3.2...napi-sys-v3.4.0) - 2026-10-01
+
+### Added
+
+- *(napi)* lock the allocator on threaded WASI and never hang after a worker crash ([#3552](https://github.com/napi-rs/napi-rs/pull/3552))
+
+## [3.3.2](https://github.com/napi-rs/napi-rs/compare/napi-sys-v3.3.1...napi-sys-v3.3.2) - 2026-09-20
+
+### Fixed
+
+- *(napi)* guard AsyncTask completion against env teardown ([#3536](https://github.com/napi-rs/napi-rs/pull/3536))
+
+## [3.3.1](https://github.com/napi-rs/napi-rs/compare/napi-sys-v3.3.0...napi-sys-v3.3.1) - 2026-09-10
+
+### Other
+
+- *(sys)* deduplicate dynamic symbol loading ([#3466](https://github.com/napi-rs/napi-rs/pull/3466))
+
+## [3.3.0](https://github.com/napi-rs/napi-rs/compare/napi-sys-v3.2.3...napi-sys-v3.3.0) - 2026-07-21
+
+### Added
+
+- unforgeable `#[napi]` class identity via Node object type tags ([#3405](https://github.com/napi-rs/napi-rs/pull/3405))
+
+## [3.2.3](https://github.com/napi-rs/napi-rs/compare/napi-sys-v3.2.2...napi-sys-v3.2.3) - 2026-07-12
+
+### Fixed
+
+- *(sys)* fall back to libnode.dll for symbol loading on MSVC targets ([#3384](https://github.com/napi-rs/napi-rs/pull/3384))
+
+## [3.2.2](https://github.com/napi-rs/napi-rs/compare/napi-sys-v3.2.1...napi-sys-v3.2.2) - 2026-06-10
+
+### Fixed
+
+- *(sys)* restore napi_create_object_with_properties as compat alias ([#3321](https://github.com/napi-rs/napi-rs/pull/3321))
+- *(napi)* experimental node_api_create_object_with_properties ([#3304](https://github.com/napi-rs/napi-rs/pull/3304))
+
+## [3.2.1](https://github.com/napi-rs/napi-rs/compare/napi-sys-v3.2.0...napi-sys-v3.2.1) - 2025-12-02
+
+### Fixed
+
+- *(sys)* always require libloading because of msvc ([#3047](https://github.com/napi-rs/napi-rs/pull/3047))
+
+## [3.2.0](https://github.com/napi-rs/napi-rs/compare/napi-sys-v3.1.1...napi-sys-v3.2.0) - 2025-12-02
+
+### Added
+
+- *(napi)* add node_api_create_object_with_properties support for enum creation ([#2990](https://github.com/napi-rs/napi-rs/pull/2990))
+
+### Other
+
+- *(sys)* add back non dyn-symbols behavior ([#3045](https://github.com/napi-rs/napi-rs/pull/3045))
+
+## [3.1.1](https://github.com/napi-rs/napi-rs/compare/napi-sys-v3.1.0...napi-sys-v3.1.1) - 2025-11-07
+
+### Other
+
+- *(napi)* Promise and ThreadsafeFunction::call_async don't require tokio ([#2998](https://github.com/napi-rs/napi-rs/pull/2998))
+
+## [3.1.0](https://github.com/napi-rs/napi-rs/compare/napi-sys-v3.0.1...napi-sys-v3.1.0) - 2025-11-06
+
+### Added
+
+- *(sys)* use libloading to load napi symbols at runtime on all platform ([#2996](https://github.com/napi-rs/napi-rs/pull/2996))
+
+## [3.0.1](https://github.com/napi-rs/napi-rs/compare/napi-sys-v3.0.0...napi-sys-v3.0.1) - 2025-10-24
+
+### Other
+
+- *(napi)* bump rust-version ([#2966](https://github.com/napi-rs/napi-rs/pull/2966))

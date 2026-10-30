@@ -1,0 +1,850 @@
+use std::{cell::RefCell, ffi::c_void, ptr};
+
+use napi::{
+  bindgen_prelude::{
+    Buffer, ClassInstance, FromNapiValue, Function, JavaScriptClassExt, JsObjectValue, JsValue,
+    Object, ObjectFinalize, This, TypeName, Uint8Array, Unknown, ValidateNapiValue, ValueType,
+  },
+  Env, Property, PropertyAttributes, Result,
+};
+
+use crate::r#enum::Kind;
+
+/// `constructor` option for `struct` requires all fields to be public,
+/// otherwise tag impl fn as constructor
+/// #[napi(constructor)]
+#[napi]
+pub struct Animal {
+  #[napi(readonly)]
+  /// Kind of animal
+  pub kind: Kind,
+
+  name: String,
+
+  optional_value: Option<i32>,
+}
+
+#[napi]
+impl Animal {
+  /// This is the constructor
+  #[napi(constructor)]
+  pub fn new(kind: Kind, name: String) -> Self {
+    Animal {
+      kind,
+      name,
+      optional_value: None,
+    }
+  }
+
+  /// This is a factory method
+  #[napi(factory)]
+  pub fn with_kind(kind: Kind) -> Self {
+    Animal {
+      kind,
+      name: "Default".to_owned(),
+      optional_value: None,
+    }
+  }
+
+  #[napi(getter)]
+  pub fn get_name(&self) -> &str {
+    self.name.as_str()
+  }
+
+  #[napi(setter)]
+  pub fn set_name(&mut self, name: String) {
+    self.name = name;
+  }
+
+  #[napi(getter, js_name = "type")]
+  pub fn kind(&self) -> Kind {
+    self.kind
+  }
+
+  #[napi(setter, js_name = "type")]
+  pub fn set_kind(&mut self, kind: Kind) {
+    self.kind = kind;
+  }
+
+  #[napi(getter)]
+  pub fn get_optional_value(&self) -> Option<i32> {
+    self.optional_value
+  }
+
+  /// This is to test that setter with optional parameter generates valid TypeScript.
+  /// TypeScript does not allow optional parameters in setters (TS1051).
+  #[napi(setter)]
+  pub fn set_optional_value(&mut self, value: Option<i32>) {
+    self.optional_value = value;
+  }
+
+  /// This is a
+  /// multi-line comment
+  /// with an emoji 🚀
+  #[napi]
+  pub fn whoami(&self) -> String {
+    match self.kind {
+      Kind::Dog => {
+        format!("Dog: {}", self.name)
+      }
+      Kind::Cat => format!("Cat: {}", self.name),
+      Kind::Duck => format!("Duck: {}", self.name),
+    }
+  }
+
+  #[napi]
+  /// This is static...
+  pub fn get_dog_kind() -> Kind {
+    Kind::Dog
+  }
+
+  #[napi]
+  /// Here are some characters and character sequences
+  /// that should be escaped correctly:
+  /// \[]{}/\:""{
+  /// }
+  /// Accept header "*/json" should not break the comment block
+  pub fn return_other_class(&self) -> Dog {
+    Dog {
+      name: "Doge".to_owned(),
+    }
+  }
+
+  #[napi]
+  pub fn return_other_class_with_custom_constructor(&self) -> Bird {
+    Bird::new("parrot".to_owned())
+  }
+
+  #[napi]
+  pub fn override_individual_arg_on_method(
+    &self,
+    normal_ty: String,
+    #[napi(ts_arg_type = "{n: string}")] overridden_ty: napi::bindgen_prelude::Object,
+  ) -> Bird {
+    let obj = overridden_ty.coerce_to_object().unwrap();
+    let the_n: Option<String> = obj.get("n").unwrap();
+
+    Bird::new(format!("{}-{}", normal_ty, the_n.unwrap()))
+  }
+}
+
+#[napi(constructor)]
+pub struct Dog {
+  pub name: String,
+}
+
+#[cfg_attr(not(feature = "cfg_attr_napi"), napi_derive::napi)]
+pub struct Bird {
+  pub name: String,
+}
+
+#[cfg_attr(not(feature = "cfg_attr_napi"), napi_derive::napi)]
+impl Bird {
+  #[cfg_attr(not(feature = "cfg_attr_napi"), napi_derive::napi(constructor))]
+  pub fn new(name: String) -> Self {
+    Bird { name }
+  }
+
+  #[cfg_attr(not(feature = "cfg_attr_napi"), napi_derive::napi)]
+  pub fn get_count(&self) -> u32 {
+    1234
+  }
+
+  #[cfg_attr(not(feature = "cfg_attr_napi"), napi_derive::napi)]
+  pub async fn get_name_async(&self) -> &str {
+    tokio::time::sleep(std::time::Duration::new(1, 0)).await;
+    self.name.as_str()
+  }
+
+  #[cfg_attr(not(feature = "cfg_attr_napi"), napi_derive::napi)]
+  pub fn accept_slice_method(&self, slice: &[u8]) -> u32 {
+    slice.len() as u32
+  }
+}
+
+/// Smoking test for type generation
+#[napi]
+#[repr(transparent)]
+pub struct Blake2bHasher(u32);
+
+#[napi]
+impl Blake2bHasher {
+  #[napi(factory)]
+  pub fn with_key(key: &Blake2bKey) -> Self {
+    Blake2bHasher(key.get_inner())
+  }
+}
+
+#[napi]
+impl Blake2bHasher {
+  #[napi]
+  pub fn update(&mut self, data: Buffer) {
+    self.0 += data.len() as u32;
+  }
+}
+
+#[napi]
+pub struct Blake2bKey(u32);
+
+impl Blake2bKey {
+  fn get_inner(&self) -> u32 {
+    self.0
+  }
+}
+
+#[napi]
+pub struct Context {
+  data: String,
+  pub maybe_need: Option<bool>,
+  pub buffer: Uint8Array,
+}
+
+// Test for return `napi::Result` and `Result`
+#[napi]
+impl Context {
+  #[napi(constructor)]
+  pub fn new() -> napi::Result<Self> {
+    Ok(Self {
+      data: "not empty".into(),
+      maybe_need: None,
+      buffer: Uint8Array::new(vec![0, 1, 2, 3]),
+    })
+  }
+
+  #[napi(factory)]
+  pub fn with_data(data: String) -> Result<Self> {
+    Ok(Self {
+      data,
+      maybe_need: Some(true),
+      buffer: Uint8Array::new(vec![0, 1, 2, 3]),
+    })
+  }
+
+  #[napi(factory)]
+  pub fn with_buffer(buf: Uint8Array) -> Self {
+    Self {
+      data: "not empty".into(),
+      maybe_need: None,
+      buffer: buf,
+    }
+  }
+
+  #[napi]
+  pub fn method(&self) -> String {
+    self.data.clone()
+  }
+}
+
+#[napi(constructor)]
+pub struct AnimalWithDefaultConstructor {
+  pub name: String,
+  pub kind: u32,
+}
+
+// Test for skip_typescript
+#[napi]
+pub struct NinjaTurtle {
+  pub name: String,
+  #[napi(skip_typescript)]
+  pub mask_color: String,
+}
+
+#[napi]
+impl NinjaTurtle {
+  #[napi]
+  pub fn is_instance_of(env: Env, value: Unknown) -> Result<bool> {
+    Self::instance_of(&env, &value)
+  }
+
+  /// Create your ninja turtle! 🐢
+  #[napi(factory)]
+  pub fn new_raph() -> Self {
+    Self {
+      name: "Raphael".to_owned(),
+      mask_color: "Red".to_owned(),
+    }
+  }
+
+  /// We are not going to expose this character, so we just skip it...
+  #[napi(factory, skip_typescript)]
+  pub fn new_leo() -> Self {
+    Self {
+      name: "Leonardo".to_owned(),
+      mask_color: "Blue".to_owned(),
+    }
+  }
+
+  #[napi]
+  pub fn get_mask_color(&self) -> &str {
+    self.mask_color.as_str()
+  }
+
+  #[napi]
+  pub fn get_name(&self) -> &str {
+    self.name.as_str()
+  }
+
+  #[napi]
+  pub fn return_this<'scope>(&'scope self, this: This<'scope>) -> This<'scope> {
+    this
+  }
+}
+
+#[napi(js_name = "Assets")]
+pub struct JsAssets {}
+
+#[napi]
+impl JsAssets {
+  #[napi(constructor)]
+  #[allow(clippy::new_without_default)]
+  pub fn new() -> Self {
+    JsAssets {}
+  }
+
+  #[napi]
+  pub fn get(&mut self, _id: u32) -> Option<JsAsset> {
+    Some(JsAsset {})
+  }
+}
+
+#[napi(js_name = "Asset")]
+pub struct JsAsset {}
+
+#[napi]
+impl JsAsset {
+  #[napi(constructor)]
+  #[allow(clippy::new_without_default)]
+  pub fn new() -> Self {
+    Self {}
+  }
+
+  #[napi(getter)]
+  pub fn get_file_path(&self) -> u32 {
+    1
+  }
+}
+
+#[napi]
+pub struct Optional {}
+
+#[napi]
+impl Optional {
+  #[napi]
+  pub fn option_end(required: String, optional: Option<String>) -> String {
+    match optional {
+      None => required,
+      Some(optional) => format!("{} {}", required, optional),
+    }
+  }
+
+  #[napi]
+  pub fn option_start(optional: Option<String>, required: String) -> String {
+    match optional {
+      None => required,
+      Some(optional) => format!("{} {}", optional, required),
+    }
+  }
+
+  #[napi]
+  pub fn option_start_end(
+    optional1: Option<String>,
+    required: String,
+    optional2: Option<String>,
+  ) -> String {
+    match (optional1, optional2) {
+      (None, None) => required,
+      (None, Some(optional2)) => format!("{} {}", required, optional2),
+      (Some(optional1), None) => format!("{} {}", optional1, required),
+      (Some(optional1), Some(optional2)) => format!("{} {} {}", optional1, required, optional2),
+    }
+  }
+
+  #[napi]
+  pub fn option_only(optional: Option<String>) -> String {
+    match optional {
+      None => "".to_string(),
+      Some(optional) => optional,
+    }
+  }
+}
+
+#[napi(object)]
+pub struct ObjectFieldClassInstance<'env> {
+  pub bird: ClassInstance<'env, Bird>,
+}
+
+#[napi]
+pub fn create_object_with_class_field(env: &Env) -> Result<ObjectFieldClassInstance<'_>> {
+  Ok(ObjectFieldClassInstance {
+    bird: Bird {
+      name: "Carolyn".to_owned(),
+    }
+    .into_instance(env)?,
+  })
+}
+
+#[napi]
+pub fn receive_object_with_class_field(
+  object: ObjectFieldClassInstance,
+) -> Result<ClassInstance<Bird>> {
+  Ok(object.bird)
+}
+
+#[napi(constructor)]
+pub struct NotWritableClass {
+  #[napi(writable = false)]
+  pub name: String,
+}
+
+#[napi]
+impl NotWritableClass {
+  #[napi(writable = false)]
+  pub fn set_name(&mut self, name: String) {
+    self.name = name;
+  }
+}
+
+/// Static methods and factories keep their default descriptor (not writable,
+/// not enumerable, not configurable) unless a flag is written out.
+#[napi]
+pub struct StaticPropertyFlags {}
+
+#[napi]
+impl StaticPropertyFlags {
+  #[napi]
+  pub fn default_flags() -> u32 {
+    1
+  }
+
+  #[napi(writable, configurable)]
+  pub fn writable_configurable() -> u32 {
+    2
+  }
+
+  #[napi(enumerable)]
+  pub fn enumerable_only() -> u32 {
+    3
+  }
+
+  #[napi(writable = false, enumerable = false, configurable = false)]
+  pub fn all_off() -> u32 {
+    4
+  }
+
+  #[napi(factory, writable)]
+  pub fn create() -> Self {
+    StaticPropertyFlags {}
+  }
+
+  #[napi(writable = false)]
+  pub fn instance_not_writable(&self) -> u32 {
+    5
+  }
+}
+
+#[napi(custom_finalize)]
+pub struct CustomFinalize {
+  width: u32,
+  height: u32,
+  inner: Vec<u8>,
+}
+
+#[napi]
+impl CustomFinalize {
+  #[napi(constructor)]
+  pub fn new(env: Env, width: u32, height: u32) -> Result<Self> {
+    let inner = vec![0; (width * height * 4) as usize];
+    let inner_size = inner.len();
+    env.adjust_external_memory(inner_size as i64)?;
+    Ok(Self {
+      width,
+      height,
+      inner,
+    })
+  }
+}
+
+impl ObjectFinalize for CustomFinalize {
+  fn finalize(self, env: Env) -> Result<()> {
+    env.adjust_external_memory(-(self.inner.len() as i64))?;
+    Ok(())
+  }
+}
+
+#[napi(constructor)]
+pub struct Width {
+  pub value: i32,
+}
+
+#[napi]
+pub fn plus_one(this: This<&Width>) -> i32 {
+  this.object.value + 1
+}
+
+#[napi]
+pub struct GetterSetterWithClosures {}
+
+#[napi]
+impl GetterSetterWithClosures {
+  #[napi(constructor)]
+  pub fn new(env: &Env, mut this: This) -> Result<Self> {
+    let age_symbol = env.create_symbol(Some("age"))?;
+
+    this.define_properties(&[
+      Property::new()
+        .with_utf8_name("name")?
+        .with_setter_closure(move |_env, mut this, value: String| {
+          this.set_named_property("_name", format!("I'm {}", value))?;
+          Ok(())
+        })
+        .with_getter_closure(|_env, this| this.get_named_property_unchecked::<Unknown>("_name")),
+      Property::new()
+        .with_utf8_name("age")?
+        .with_getter_closure(|_env, _this| Ok(0.3)),
+      Property::new()
+        .with_name(env, age_symbol)?
+        .with_getter_closure(|_env, _this| Ok(0.3)),
+    ])?;
+
+    this.set_property(env.create_string("ageSymbol")?, age_symbol)?;
+    Ok(Self {})
+  }
+}
+
+#[napi]
+pub struct CatchOnConstructor {}
+
+#[napi]
+impl CatchOnConstructor {
+  #[napi(constructor, catch_unwind)]
+  pub fn new() -> Self {
+    Self {}
+  }
+}
+
+#[napi]
+pub struct CatchOnConstructor2 {}
+
+#[napi]
+impl CatchOnConstructor2 {
+  #[napi(constructor, catch_unwind)]
+  pub fn new() -> Self {
+    panic!("CatchOnConstructor2 panic");
+  }
+}
+
+#[napi]
+pub struct ClassWithLifetime<'a> {
+  inner: ClassInstance<'a, Animal>,
+  inner2: ClassInstance<'a, Animal>,
+}
+
+#[napi]
+impl<'scope> ClassWithLifetime<'scope> {
+  #[napi(constructor)]
+  pub fn new(env: &Env, mut this: This<'scope>) -> Result<Self> {
+    let instance = Animal {
+      kind: Kind::Cat,
+      name: "alie".to_owned(),
+      optional_value: None,
+    }
+    .into_instance(env)?;
+    let inner = instance.assign_to_this("inner", &mut this)?;
+    let inner2 =
+      instance.assign_to_this_with_attributes("inner2", PropertyAttributes::Default, &mut this)?;
+    Ok(Self { inner, inner2 })
+  }
+
+  #[napi]
+  pub fn get_name(&self) -> &str {
+    self.inner.get_name()
+  }
+}
+
+#[napi(js_name = "MyJsNamedClass")]
+pub struct OriginalRustNameForJsNamedStruct {
+  value: String,
+}
+
+#[napi]
+impl OriginalRustNameForJsNamedStruct {
+  #[napi(constructor)]
+  pub fn new(value: String) -> Self {
+    OriginalRustNameForJsNamedStruct { value }
+  }
+
+  #[napi]
+  pub fn get_value(&self) -> String {
+    self.value.clone()
+  }
+
+  #[napi]
+  pub fn multiply_value(&self, times: u32) -> String {
+    self.value.repeat(times as usize)
+  }
+}
+
+// Test case for js_name struct with methods only (no constructor)
+#[napi(js_name = "JSOnlyMethodsClass")]
+pub struct RustOnlyMethodsClass {
+  pub data: String,
+}
+
+#[napi]
+impl RustOnlyMethodsClass {
+  #[napi]
+  pub fn process_data(&self) -> String {
+    format!("processed: {}", self.data)
+  }
+
+  #[napi]
+  pub fn get_length(&self) -> u32 {
+    self.data.len() as u32
+  }
+}
+
+// Test case for issue #2746: instanceof failure for objects returned from getters
+#[napi]
+pub struct Thing;
+
+#[napi]
+pub struct ThingList;
+
+#[napi]
+impl ThingList {
+  #[napi(constructor)]
+  pub fn new() -> Self {
+    Self
+  }
+
+  #[napi(getter)]
+  pub fn thing() -> Thing {
+    Thing
+  }
+}
+
+thread_local! {
+  static DETACHED_REENTRANT_BORROW_ORDER_TARGETS: RefCell<Vec<*mut ReentrantBorrowOrderTest>> =
+    const { RefCell::new(Vec::new()) };
+}
+
+pub struct ReentrantThisValue(u32);
+
+impl TypeName for ReentrantThisValue {
+  fn type_name() -> &'static str {
+    "Object"
+  }
+
+  fn value_type() -> ValueType {
+    ValueType::Object
+  }
+}
+
+impl ValidateNapiValue for ReentrantThisValue {}
+
+impl FromNapiValue for ReentrantThisValue {
+  unsafe fn from_napi_value(
+    env: napi::sys::napi_env,
+    napi_val: napi::sys::napi_value,
+  ) -> Result<Self> {
+    let object = unsafe { Object::from_napi_value(env, napi_val)? };
+    Ok(Self(object.get_element(0)?))
+  }
+}
+
+/// Regression fixture for issue #3378. `Vec` conversion reads JavaScript array
+/// elements, so an indexed getter can synchronously reenter before conversion
+/// has finished.
+#[napi]
+pub struct ReentrantBorrowOrderTest {
+  pub values: Vec<u32>,
+}
+
+#[napi]
+impl ReentrantBorrowOrderTest {
+  #[napi(constructor)]
+  pub fn new() -> Self {
+    Self { values: Vec::new() }
+  }
+
+  #[napi]
+  pub fn replace_values(&mut self, values: Vec<u32>) {
+    self.values = values;
+  }
+
+  #[napi]
+  pub fn replace_values_from_this(
+    &mut self,
+    #[napi(ts_arg_type = "object")] value: This<ReentrantThisValue>,
+  ) {
+    self.values = vec![value.object.0];
+  }
+}
+
+/// Create a class-branded object whose wrap can be removed without touching
+/// the generated class instance's reference/finalizer bookkeeping.
+#[napi]
+pub fn create_reentrant_borrow_order_test_target<'env>(
+  env: &'env Env,
+  #[napi(ts_arg_type = "new (...args: any[]) => unknown")] constructor: Function<'env>,
+) -> Result<Object<'env>> {
+  // The generated constructor skips its normal native allocation while this
+  // flag is set. This gives the fixture a receiver with the class's V8 brand,
+  // while keeping ownership of the manually-installed wrap local to the test.
+  let mut instance = ptr::null_mut();
+  napi::__private::___CALL_FROM_FACTORY.with(|flag| flag.set(true));
+  let construct_status = unsafe {
+    napi::sys::napi_new_instance(
+      env.raw(),
+      constructor.raw(),
+      0,
+      ptr::null_mut(),
+      &mut instance,
+    )
+  };
+  napi::__private::___CALL_FROM_FACTORY.with(|flag| flag.set(false));
+  napi::check_status!(
+    construct_status,
+    "Failed to construct reentrant test class instance"
+  )?;
+
+  let target = unsafe { Object::from_napi_value(env.raw(), instance)? };
+  let native = Box::into_raw(Box::new(ReentrantBorrowOrderTest::new()));
+  if let Err(err) = unsafe {
+    napi::bindgen_prelude::wrap_and_tag::<ReentrantBorrowOrderTest>(
+      env.raw(),
+      target.raw(),
+      native.cast(),
+    )
+  } {
+    // SAFETY: wrap failed, so JavaScript did not take ownership.
+    unsafe { drop(Box::from_raw(native)) };
+    return Err(err);
+  }
+
+  Ok(target)
+}
+
+/// Detach the native value without constructing a second Rust receiver during
+/// reentry. Cleanup is deliberately deferred until the outer native call has
+/// returned or thrown, because the old code generation keeps using the cached
+/// pointer after input conversion.
+#[napi]
+pub fn detach_reentrant_borrow_order_test_target(env: Env, target: Unknown) -> Result<()> {
+  let mut detached = ptr::null_mut::<c_void>();
+  napi::check_status!(
+    unsafe { napi::sys::napi_remove_wrap(env.raw(), target.raw(), &mut detached) },
+    "Failed to detach receiver during reentrant conversion"
+  )?;
+
+  if detached.is_null() {
+    return Err(napi::Error::from_reason(
+      "Reentrant receiver did not contain a native value",
+    ));
+  }
+
+  DETACHED_REENTRANT_BORROW_ORDER_TARGETS.with(|targets| {
+    targets
+      .borrow_mut()
+      .push(detached.cast::<ReentrantBorrowOrderTest>());
+  });
+  Ok(())
+}
+
+#[napi]
+pub fn cleanup_reentrant_borrow_order_test_targets() -> u32 {
+  DETACHED_REENTRANT_BORROW_ORDER_TARGETS.with(|targets| {
+    let mut targets = targets.borrow_mut();
+    let count = targets.len() as u32;
+    for target in targets.drain(..) {
+      // SAFETY: every pointer comes from one successful `napi_remove_wrap`,
+      // which transfers ownership and disables the generated finalizer. The
+      // JS test calls this only after its outer native call has completed.
+      unsafe { drop(Box::from_raw(target)) };
+    }
+    count
+  })
+}
+
+/// Regression fixture for the native borrow tracker. Mirrors downstream
+/// eager-release patterns (rolldown's `BindingRenderedChunk::drop_inner`):
+/// an `Option<Arc<...>>` inner, a `&mut self` method that drops it, and a
+/// getter returning `Vec<&str>` borrowed from it. Converting the getter's
+/// return value reads JavaScript-observable array indices, so a hostile
+/// `Array.prototype` index setter can reenter `drop_inner` while the `&str`
+/// elements still point into the `Arc`'d strings. The shared borrow guard
+/// held across return-value conversion must turn that use-after-free into a
+/// borrow-conflict error.
+#[napi]
+pub struct EagerReleaseHolder {
+  inner: Option<std::sync::Arc<Vec<String>>>,
+}
+
+#[napi]
+impl EagerReleaseHolder {
+  #[napi(constructor)]
+  #[allow(clippy::new_without_default)]
+  pub fn new() -> Self {
+    Self {
+      inner: Some(std::sync::Arc::new(vec![
+        "A".repeat(256),
+        "B".repeat(256),
+        "C".repeat(256),
+        "D".repeat(256),
+      ])),
+    }
+  }
+
+  /// Returns `true` when it dropped the last strong reference.
+  #[napi]
+  pub fn drop_inner(&mut self) -> bool {
+    match self.inner.take() {
+      Some(arc) => {
+        let last = std::sync::Arc::strong_count(&arc) == 1;
+        drop(arc);
+        last
+      }
+      None => false,
+    }
+  }
+
+  #[napi(getter)]
+  pub fn get_items(&self) -> Result<Vec<&str>> {
+    Ok(
+      self
+        .inner
+        .as_ref()
+        .ok_or_else(|| napi::Error::from_reason("inner value already released"))?
+        .iter()
+        .map(AsRef::as_ref)
+        .collect(),
+    )
+  }
+}
+
+#[napi(
+  ts_return_type = r#"typeof DynamicRustClass\n\ndeclare class DynamicRustClass {
+  constructor(value: number)
+  rustMethod(): number
+}"#
+)]
+pub fn define_class<'env>(env: &'env Env) -> Result<Function<'env>> {
+  env.define_class(
+    "DynamicRustClass",
+    rust_class_constructor_c_callback,
+    &[Property::new()
+      .with_utf8_name("rustMethod")?
+      .with_method(rust_class_method_c_callback)],
+  )
+}
+
+#[napi(no_export)]
+fn rust_class_constructor(value: i32, mut this: This) -> Result<()> {
+  this.set_named_property("dynamicValue", value)?;
+  Ok(())
+}
+
+#[napi(no_export)]
+fn rust_class_method(this: This) -> Result<i32> {
+  this.get_named_property_unchecked::<i32>("dynamicValue")
+}

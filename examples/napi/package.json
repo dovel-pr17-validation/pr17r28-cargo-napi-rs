@@ -1,0 +1,80 @@
+{
+  "name": "@examples/napi",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "scripts": {
+    "browser": "vite",
+    "build": "node build.mjs",
+    "regenerate": "node build.mjs --regenerate-all",
+    "test": "ava reset-cache && cross-env TS_NODE_PROJECT=./tsconfig.json node --import @oxc-node/core/register ../../node_modules/ava/entrypoints/cli.js",
+    "test:leak": "oxnode --expose-gc ./memory-test.ts",
+    "test-js": "ava reset-cache && ava",
+    "test:wasi-public-surfaces": "node ./wasi-public-surface/test.mjs"
+  },
+  "napi": {
+    "binaryName": "example",
+    "wasm": {
+      "initialMemory": 16384,
+      "browser": {
+        "fs": true,
+        "buffer": true
+      }
+    },
+    "dtsHeader": "type MaybePromise<T> = T | Promise<T>",
+    "dtsHeaderFile": "./dts-header.d.ts",
+    "targets": [
+      "wasm32-wasip1",
+      "wasm32-wasip1-threads"
+    ]
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "workspace:*",
+    "@napi-rs/triples": "workspace:*",
+    "@napi-rs/wasm-runtime": "workspace:*",
+    "@oxc-node/cli": "^1.0.0",
+    "@oxc-node/core": "^1.0.0",
+    "@testing-library/dom": "^10.4.1",
+    "@types/lodash": "^4.17.24",
+    "@vitest/browser": "^5.0.0",
+    "@vitest/browser-playwright": "^5.0.0",
+    "@vitest/ui": "^5.0.0",
+    "ava": "^8.0.1",
+    "buffer": "^6.0.3",
+    "core-js": "^3.49.0",
+    "cross-env": "10.1.0",
+    "electron": "^45.0.0",
+    "esbuild": "^0.28.1",
+    "lodash": "^4.18.1",
+    "miniflare": "^4.20260630.0",
+    "playwright": "^1.60.0",
+    "rxjs": "^7.8.2",
+    "sinon": "^22.0.0",
+    "vite": "^8.0.16",
+    "vite-plugin-node-polyfills": "^0.28.0",
+    "vitest": "^5.0.0",
+    "web-streams-polyfill": "^4.3.0",
+    "webdriverio": "^10.0.0"
+  },
+  "ava": {
+    "extensions": [
+      "ts",
+      "cts",
+      "cjs",
+      "js",
+      "mjs"
+    ],
+    "files": [
+      "__tests__/**/*.spec.{ts,cts,js,cjs,mjs}"
+    ],
+    "workerThreads": false,
+    "cache": false,
+    "timeout": "10m"
+  },
+  "dependencies": {
+    "@emnapi/core": "^2.0.0-alpha.4",
+    "@emnapi/runtime": "^2.0.0-alpha.4"
+  }
+}

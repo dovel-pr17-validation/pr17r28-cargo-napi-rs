@@ -1,0 +1,35 @@
+{
+  "extends": ["config:base", ":preserveSemverRanges"],
+  "ignorePaths": [
+    "**/node_modules/**",
+    "**/bower_components/**",
+    "**/vendor/**",
+    "**/__tests__/**",
+    "**/test/**",
+    "**/__fixtures__/**"
+  ],
+  "packageRules": [
+    {
+      "automerge": true,
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"]
+    },
+    {
+      "matchPackageNames": ["emnapi", "@emnapi/**"],
+      "rangeStrategy": "update-lockfile",
+      "groupName": "emnapi"
+    },
+    {
+      "matchPackageNames": ["@oxc-node/**"],
+      "groupName": "oxc-node"
+    },
+    {
+      "matchPackageNames": ["vitest", "@vitest/**", "vitest-browser-vue"],
+      "groupName": "vitest"
+    }
+  ],
+  "postUpdateOptions": ["yarnDedupeHighest"],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "extends": ["schedule:monthly"]
+  }
+}

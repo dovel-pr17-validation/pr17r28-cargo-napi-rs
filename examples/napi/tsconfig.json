@@ -1,0 +1,21 @@
+{
+  "extends": "../../tsconfig.json",
+  "include": ["."],
+  "compilerOptions": {
+    "moduleResolution": "bundler",
+    "outDir": "./dist",
+    "rootDir": ".",
+    "target": "ESNext",
+    "module": "ESNext",
+    "types": ["node"],
+    "lib": ["DOM.Iterable", "ESNext"],
+    "importHelpers": false
+  },
+  "exclude": [
+    "dist",
+    "electron.js",
+    "electron-renderer",
+    "index.js",
+    "index.wasi.mjs"
+  ]
+}
