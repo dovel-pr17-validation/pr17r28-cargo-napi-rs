@@ -74,7 +74,7 @@ node_version_detect = []
 tracing = ["dep:tracing"]
 
 [dependencies]
-bitflags = "2"
+bitflags = "2.13.2"
 # Keep ctor's priority support disabled until the Apple/Zig cross-link
 # path stops emitting unresolved `section$end$__DATA$CTOR` references.
 ctor = { version = "1.0.0", default-features = false }
@@ -83,7 +83,7 @@ rustc-hash = "2.1.1"
 
 [dependencies.anyhow]
 optional = true
-version = "1"
+version = "1.0.104"
 
 [dependencies.napi-sys]
 path = "../sys"
